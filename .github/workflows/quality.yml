@@ -1,0 +1,101 @@
+name: Quality pipeline
+
+on:
+  push:
+    branches: ["*"]
+  schedule:
+    - cron: "0 */6 * * *"
+
+jobs:
+  quality_pipeline_static_analysis:
+    runs-on: ubuntu-18.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Setup NodeJS 14
+        uses: actions/setup-node@v2
+        with:
+          node-version: 14
+
+      - name: Install
+        run: npm install
+
+      - name: Lint
+        run: |
+          npm run lint:runner
+          npm run lint:server
+
+  quality_pipeline_chromium:
+    runs-on: ubuntu-18.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Setup NodeJS 14
+        uses: actions/setup-node@v2
+        with:
+          node-version: 14
+
+      - name: Install
+        run: npm install
+
+      - name: Build
+        run: npm run build
+
+      - name: Test
+        run: npm run test:ci
+
+      - name: Report coverage
+        run: bash <(curl -s https://codecov.io/bash)
+
+  quality_pipeline_firefox:
+    runs-on: ubuntu-18.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Setup NodeJS 14
+        uses: actions/setup-node@v2
+        with:
+          node-version: 14
+
+      - name: Install
+        run: npm install
+
+      - name: Build
+        run: npm run build
+
+      - name: Test
+        run: npm run test:ci:firefox
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: artifacts-firefox
+          path: ./reports
+
+  quality_pipeline_webkit:
+    runs-on: ubuntu-18.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Setup NodeJS 14
+        uses: actions/setup-node@v2
+        with:
+          node-version: 14
+
+      - name: Install
+        run: npm install && npx playwright install-deps
+
+      - name: Build
+        run: npm run build
+
+      - name: Test
+        run: npm run test:ci:webkit
